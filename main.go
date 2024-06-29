@@ -22,6 +22,7 @@ type Pos struct {
 type Board struct {
 	width     int
 	height    int
+	baord     [][]int
 	apple_pos Pos
 	running   bool
 }
@@ -66,59 +67,88 @@ func is_snake_pos(row int, col int) bool {
 }
 
 func printfBoard() {
-	for i := 0; i < board.height-1; i++ {
-		for j := 0; j < board.width; j++ {
 
-			if i == board.apple_pos.y && j == board.apple_pos.x {
-				fmt.Print("A")
-				continue
-			}
-
-			if i == snake.head.y && j == snake.head.x {
-				fmt.Print("S")
-				continue
-			}
-
-			if is_snake_pos(i, j) {
-				fmt.Print("s")
-				continue
-			}
-
-			if (i == 0 && j == 0) || (i == 0 && j == board.width-1) || (i == board.height-2 && j == 0) || (i == board.height-2 && j == board.width-1) {
-				fmt.Print("+")
-				continue
-			}
-
-			if j == 0 || j == board.width-1 {
+	for _, row := range board.baord {
+		for _, col := range row {
+			switch col {
+			case -1:
 				fmt.Print("|")
-				continue
-			}
-
-			if i == 0 || i == board.height-2 {
+				break
+			case -2:
 				fmt.Print("-")
-				continue
+				break
+			case -3:
+				fmt.Print("+")
+			case 0:
+				fmt.Print(" ")
+				break
+			case 1:
+				fmt.Print("S")
+				break
+			case 2:
+				fmt.Print("s")
+				break
+			case 3:
+				fmt.Print("a")
+
 			}
-
-			fmt.Print(" ")
-		}
-
-		if i != board.height-2 {
-			fmt.Print("\n")
-
 		}
 	}
+	// for i := 0; i < board.height-1; i++ {
+	// 	for j := 0; j < board.width; j++ {
 
-	fmt.Printf("Snake length: %d", snake.length)
-	t := snake.head
+	// 		if i == board.apple_pos.y && j == board.apple_pos.x {
+	// 			fmt.Print("A")
+	// 			continue
+	// 		}
 
-	for {
-		if t == nil {
-			break
-		}
+	// 		if i == snake.head.y && j == snake.head.x {
+	// 			fmt.Print("S")
+	// 			continue
+	// 		}
 
-		fmt.Printf("(%d, %d) ->", t.x, t.y)
-		t = t.next
-	}
+	// 		if is_snake_pos(i, j) {
+	// 			fmt.Print("s")
+	// 			continue
+	// 		}
+
+	// 		if (i == 0 && j == 0) || (i == 0 && j == board.width-1) || (i == board.height-2 && j == 0) || (i == board.height-2 && j == board.width-1) {
+	// 			fmt.Print("+")
+	// 			continue
+	// 		}
+
+	// 		if j == 0 || j == board.width-1 {
+	// 			fmt.Print("|")
+	// 			continue
+	// 		}
+
+	// 		if i == 0 || i == board.height-2 {
+	// 			fmt.Print("-")
+	// 			continue
+	// 		}
+
+	// 		fmt.Print(" ")
+	// 	}
+
+	// 	if i != board.height-2 {
+	// 		fmt.Print("\n")
+
+	// 	}
+	// }
+
+	fmt.Printf("Snake length: %d\n", snake.length)
+	fmt.Printf("value at head %d", board.baord[snake.head.y][snake.head.x])
+
+	// t := snake.head
+
+	// for {
+	// 	if t == nil {
+	// 		break
+	// 	}
+
+	// 	fmt.Printf("(%d, %d) ->", t.x, t.y)
+	// 	t = t.next
+	// }
 }
 
 func gen_apple_pos() {
@@ -226,38 +256,92 @@ func check_apple() {
 	}
 }
 
-func check_collision() bool {
-	t := snake.head.next
-
-	// touching self
-	for {
-		if t == nil {
-			break
-		}
-
-		if t.x == snake.head.x && t.y == snake.head.y {
-			return true
-		}
-
-		t = t.next
-	}
-
-	// touching side walls
-	if snake.head.x == 0 || snake.head.x == board.width-1 {
-		return true
-	}
-
-	// touching top or bottom
-	if snake.head.y == 0 || snake.head.y == board.height-2 {
+func check_wall_collision() bool {
+	if board.baord[snake.head.y][snake.head.x] < 0 {
 		return true
 	}
 
 	return false
 }
 
+func check_suicide() bool {
+	if board.baord[snake.head.y][snake.head.x] == 2 {
+		return true
+	}
+
+	return false
+}
+
+func clear_board() {
+	t := snake.head
+
+	for {
+		if t == nil {
+			break
+		}
+
+		board.baord[t.y][t.x] = 0
+		t = t.next
+	}
+
+	board.baord[board.apple_pos.y][board.apple_pos.x] = 0
+}
+
+func updateBoard() {
+	t := snake.head.next
+
+	board.baord[snake.head.y][snake.head.x] = 1
+	for {
+		if t == nil {
+			break
+		}
+
+		board.baord[t.y][t.x] = 2
+
+		t = t.next
+	}
+
+	board.baord[board.apple_pos.y][board.apple_pos.x] = 3
+
+}
+
+func init_board() {
+	for i, row := range board.baord {
+		for j, _ := range row {
+
+			// if corner
+			if (i == 0 && j == 0) || (i == len(board.baord)-1 && j == len(row)-1) || (i == 0 && j == len(row)-1) || (i == len(board.baord)-1 && j == 0) {
+				board.baord[i][j] = -3
+				continue
+			}
+
+			// if top or bottom
+			if i == 0 || i == len(board.baord)-1 {
+				board.baord[i][j] = -2
+				continue
+			}
+
+			// if side wall
+			if j == 0 || j == len(row)-1 {
+				board.baord[i][j] = -1
+				continue
+			}
+
+			board.baord[i][j] = 0
+		}
+	}
+}
+
 func main() {
 	// var err error
 	board.width, board.height, _ = terminal.GetSize(0)
+	board.baord = make([][]int, board.height-2)
+
+	for i, _ := range board.baord {
+		board.baord[i] = make([]int, board.width)
+	}
+
+	init_board()
 
 	board.running = true
 
@@ -278,16 +362,27 @@ func main() {
 
 	for board.running {
 		clear()
+		clear_board()
 		move_snake()
-		if check_collision() {
+
+		check_apple()
+		if check_wall_collision() {
 			board.running = false
 			break
 		}
-		check_apple()
+
+		updateBoard()
+
+		if check_suicide() {
+			board.running = false
+			break
+		}
+
 		printfBoard()
-		time.Sleep(400 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 
+	clear()
 	fmt.Println("Game over\n")
 
 }
